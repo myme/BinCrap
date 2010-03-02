@@ -1,0 +1,28 @@
+#!/bin/bash
+
+INTERVAL=10
+TIMEOUT=30
+HOST=$1
+
+if [ "x$HOST" == "x" ]
+then
+    HOST='http://my.opera.com/community/'
+fi
+
+while true;
+do
+    # Get the front-page
+    RETURN=$(wget -S -O/dev/null --timeout=$TIMEOUT $HOST 2>&1)
+    CODE=$(echo $RETURN | sed -r "s_.+HTTP/[^ ]+ ([0-9]+).+_\1_")
+
+    echo "$(date) -- $CODE"
+
+    # Notfiy, if something's wrong
+    if [ $CODE -ne 200 ]
+    then
+        echo $RETURN >&2
+        echo "My Opera did not respond with 200" | write $USER
+    fi
+    sleep $INTERVAL
+done
+

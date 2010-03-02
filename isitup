@@ -21,7 +21,7 @@ do
     if [ $CODE -ne 200 ]
     then
         echo $RETURN >&2
-        echo "My Opera did not respond with 200" | write $USER
+        echo "$HOST did not respond with 200" | write $USER
     fi
     sleep $INTERVAL
 done

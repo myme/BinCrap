@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# Simple script for switching to the next or
+# previous wmii tag.
+#
+
+# Default is next
+DIRECTION=${1:-'next'}
+
+CURRENT=$(wmiir read /ctl | grep 'view' | cut -d' ' -f2)
+TAGS=( $(wmiir ls /tag | grep -v '^sel/$' | sed 's_/\?$__') )
+
+CUR_IDX=0
+for TAG in ${TAGS[@]}; do
+    if [[ $TAG == $CURRENT ]]; then
+        break
+    fi
+    CUR_IDX=$(( $CUR_IDX + 1 ))
+done
+
+# No matching tags?
+if [ $CUR_IDX == ${#TAGS[@]} ]; then
+    echo "Something's horribly wrong!"
+    exit
+fi
+
+case $DIRECTION in
+    next)
+        if [[ $CUR_IDX == $(( ${#TAGS[@]} - 1 )) ]]; then
+            NEW_IDX=0
+        else
+            NEW_IDX=$(( $CUR_IDX + 1 ))
+        fi
+        ;;
+    prev)
+        if [[ $CUR_IDX == 0 ]]; then
+            NEW_IDX=$(( ${#TAGS[@]} - 1 ))
+        else
+            NEW_IDX=$(( $CUR_IDX - 1))
+        fi
+        ;;
+    *)
+        NEW_IDX=$CUR_IDX
+        ;;
+esac
+
+NEW=${TAGS[$NEW_IDX]}
+echo "view $NEW" | wmiir write /ctl
+

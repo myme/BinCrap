@@ -1,0 +1,93 @@
+#!/bin/bash
+#
+# $Id$
+# $Date$
+# $URL$
+# $Author$
+# $Rev$
+#
+# Small script to create a svn tag in the appropriate folder
+# with the appropriate name, based on a working copy of a branch.
+#
+# Either, cd to the root of the desired working copy, or specify
+# it as the first parameter to this script.
+#
+# TO ABORT, just exit without saving from the editor which is opened
+# when subversion asks for a commit message.
+#
+
+DIR=${1:-'.'}
+
+SVN_INFO="$(svn info $DIR 2>&1)"
+
+if [[ $? != 0 ]]; then echo "'$DIR' is not a working copy..."; exit; fi
+
+SVN_URL=$(echo -e "$SVN_INFO" | grep ^URL: | cut -d' ' -f2)
+
+# Fetch the current branch name from the URL
+BRANCH=${SVN_URL/#*\//}
+
+# The svn root is everything up until branch name
+if [[ $BRANCH == 'trunk' ]]; then
+    SVN_ROOT=${SVN_URL/%\/trunk/}
+else
+    SVN_ROOT=${SVN_URL/%\/branches\/*/}
+fi
+
+#
+# Fetch all tags matching the current branch name
+#
+LAST_TAG_NAME=$(svn ls $SVN_ROOT/tags | grep $BRANCH | sort | tail -1)
+
+#
+# If there are no existing tags, begin with 0
+# I.e. the initial release of a branch
+#
+if [[ $LAST_TAG_NAME ]];
+then
+    LAST_TAG_NUM=$(echo $LAST_TAG_NAME | sed -r 's_.*-([0-9]+)/$_\1_')
+    NEXT_TAG_NUM=$(( $LAST_TAG_NUM + 1 ))
+else
+    NEXT_TAG_NUM=0
+fi
+
+NEXT_TAG_PATH="$SVN_ROOT/tags/$BRANCH-$NEXT_TAG_NUM"
+
+#
+# Create a standard commit message
+#
+DATE=`date +"%F"`
+TIME=`date +"%R"`
+CI_MSG_FILE="sync-${BRANCH}_${DATE}_$TIME.txt"
+INITIAL_MSG="Sync $DATE at $TIME -- <desc>"
+
+echo $INITIAL_MSG > $CI_MSG_FILE
+
+if [[ $VISUAL ]]; then
+    $VISUAL $CI_MSG_FILE
+else
+    if [[ $EDITOR ]]; then
+        $EDITOR $CI_MSG_FILE
+    else
+        vi $CI_MSG_FILE
+    fi
+fi
+
+if [ "$(cat $CI_MSG_FILE)" = "$INITIAL_MSG" ]; then
+    echo "You need to enter a quick description"
+    exit
+fi
+
+#
+# Create the tag
+#
+echo "Tagging '$SVN_URL' as '$NEXT_TAG_PATH'"
+echo "Log message: $(cat $CI_MSG_FILE)"
+echo "svn cp -F $CI_MSG_FILE $SVN_URL $NEXT_TAG_PATH"
+svn cp -F $CI_MSG_FILE $SVN_URL $NEXT_TAG_PATH
+
+#
+# Clean up
+#
+rm $CI_MSG_FILE
+

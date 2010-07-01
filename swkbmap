@@ -1,0 +1,17 @@
+#!/bin/bash
+
+KEYMAP=`setxkbmap -print | grep 'xkb_symbols' | sed -r 's_.*\+(us|no)\+.*_\1_'`
+
+case $KEYMAP in
+    no)
+        KEYMAP='us'
+        ;;
+    us)
+        KEYMAP='no'
+        ;;
+    *)
+        ;;
+esac
+
+setxkbmap $KEYMAP
+

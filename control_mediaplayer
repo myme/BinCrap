@@ -1,0 +1,96 @@
+#!/usr/bin/env python
+#
+# Simple script to control a media player (e.g. Spotify) via DBus.
+#
+
+import dbus
+
+class InvalidAction(Exception):
+    def __init__(self, action):
+        Exception.__init__(self, action)
+
+class MediaControl(object):
+    def __init__(self):
+        self.sess_bus = dbus.SessionBus()
+
+    def list(self):
+        return filter(lambda x: x.startswith("org.mpris"), self.sess_bus.list_names())
+
+    def next(self, player=0):
+        for player in self.players():
+            player.Next(dbus_interface='org.freedesktop.MediaPlayer')
+
+    def pause(self, player=0):
+        for player in self.players():
+            player.Pause(dbus_interface='org.freedesktop.MediaPlayer')
+
+    def play(self, player=0):
+        for player in self.players():
+            player.Play(dbus_interface='org.freedesktop.MediaPlayer')
+
+    def prev(self, player=0):
+        for player in self.players():
+            player.Prev(dbus_interface='org.freedesktop.MediaPlayer')
+
+    def players(self):
+        player_names = self.list()
+
+        players = []
+        for name in player_names:
+            players.append(self.sess_bus.get_object(name, '/Player'))
+
+        return players
+
+def usage():
+    import sys
+    print """
+{0} [--options] <action>
+
+Actions:
+  Overview:
+    list        List all players
+
+  Playback:
+    pause       Pause playback
+    play        Start playback
+    next        Skip to the next track
+    prev        Skip to the previous/start of current track
+""".format(sys.argv[0])
+
+if __name__ == '__main__':
+    import sys, getopt
+
+    opts, args = getopt.gnu_getopt(
+            sys.argv[1:],
+            'h',
+            (
+                'help',
+            )
+        )
+
+    for opt, val in opts:
+        if opt == '--help' or opt == '-h':
+            usage()
+            sys.exit(0)
+
+    if len(args):
+        action = args.pop(0)
+    else:
+        action = 'list'
+
+    mc = MediaControl()
+
+    if action == 'list':
+        for player in mc.list():
+            print player
+    elif action == 'pause':
+        mc.pause()
+    elif action == 'play':
+        mc.play()
+    elif action == 'next':
+        mc.next()
+    elif action == 'prev':
+        mc.prev()
+    else:
+        raise InvalidAction(action)
+

@@ -10,6 +10,8 @@ class InvalidAction(Exception):
         Exception.__init__(self, action)
 
 class MediaControl(object):
+    INTERFACE = "org.mpris.MediaPlayer2.Player"
+
     def __init__(self):
         self.sess_bus = dbus.SessionBus()
 
@@ -18,26 +20,26 @@ class MediaControl(object):
 
     def next(self, player=0):
         for player in self.players():
-            player.Next(dbus_interface='org.freedesktop.MediaPlayer')
+            player.Next(dbus_interface=MediaControl.INTERFACE)
 
     def pause(self, player=0):
         for player in self.players():
-            player.Pause(dbus_interface='org.freedesktop.MediaPlayer')
+            player.Pause(dbus_interface=MediaControl.INTERFACE)
 
     def play(self, player=0):
         for player in self.players():
-            player.Play(dbus_interface='org.freedesktop.MediaPlayer')
+            player.Play(dbus_interface=MediaControl.INTERFACE)
 
     def prev(self, player=0):
         for player in self.players():
-            player.Prev(dbus_interface='org.freedesktop.MediaPlayer')
+            player.Previous(dbus_interface=MediaControl.INTERFACE)
 
     def players(self):
         player_names = self.list()
 
         players = []
         for name in player_names:
-            players.append(self.sess_bus.get_object(name, '/Player'))
+            players.append(self.sess_bus.get_object(name, '/org/mpris/MediaPlayer2'))
 
         return players
 
